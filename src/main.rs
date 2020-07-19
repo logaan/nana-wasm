@@ -1,7 +1,11 @@
+#![allow(dead_code)]
+
 use ferris_says::say; // from the previous step
 use std::io::{stdout, BufWriter};
 use std::collections::HashMap;
+use regex::Regex;
 
+#[derive(PartialEq, Debug)]
 enum BuiltinFunction {
     Equals,
     Plus,
@@ -44,6 +48,21 @@ enum ReadResult {
 
 // exception UnbalancedParens;
 
+fn tokenize(before: &str) -> Vec<String> {
+    // Should move these out of the function somewhere
+    let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
+    let whitespace = Regex::new(r"[ \n]+").unwrap();
+
+    let after = parens.replace_all(before, " $p ");
+    let tokens = whitespace
+        .split(&after)
+        .map(|s| s.to_string())
+        .filter(|s| s != "")
+        .collect();
+
+    return tokens;
+}
+
 fn main() {
     let stdout  = stdout();
     let message = String::from("Hello fellow Rustaceans!");
@@ -51,4 +70,7 @@ fn main() {
 
     let mut writer = BufWriter::new(stdout.lock());
     say(message.as_bytes(), width, &mut writer).unwrap();
+
+    assert_eq!(BuiltinFunction::Equals, BuiltinFunction::Equals);
+    assert_eq!(vec!["(", "hello", ")"], tokenize("(hello)"))
 }
