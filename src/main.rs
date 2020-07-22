@@ -63,6 +63,11 @@ fn tokenize(before: &str) -> Vec<String> {
     return tokens;
 }
 
+fn is_number(str: &str) -> bool {
+    let digits = Regex::new(r"^[0-9]*$").unwrap();
+    return digits.is_match(str);
+}
+
 fn main() {
     let stdout  = stdout();
     let message = String::from("Hello fellow Rustaceans!");
