@@ -5,7 +5,7 @@ use std::io::{stdout, BufWriter};
 use std::collections::HashMap;
 use regex::Regex;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 enum BuiltinFunction {
     Equals,
     Plus,
@@ -17,6 +17,7 @@ enum BuiltinFunction {
 
 type Environment = HashMap<String, Expression>;
 
+#[derive(PartialEq, Debug, Clone)]
 enum Frame {
     Start(Environment, Expression),
     AddToEnv(Environment, String),
@@ -28,6 +29,7 @@ enum Frame {
 
 type Stack = Vec<Frame>;
 
+#[derive(PartialEq, Debug, Clone)]
 enum Expression {
     True,
     False,
@@ -48,16 +50,15 @@ enum ReadResult {
 
 // exception UnbalancedParens;
 
-fn tokenize(before: &str) -> Vec<String> {
+fn tokenize(code: String) -> Vec<String> {
     // Should move these out of the function somewhere
     let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
     let whitespace = Regex::new(r"[ \n]+").unwrap();
-
-    let after = parens.replace_all(before, " $p ");
+    let spacious_code = parens.replace_all(&code, " $p ");
     let tokens = whitespace
-        .split(&after)
+        .split(&spacious_code)
+        .filter(|s| !s.is_empty() )
         .map(|s| s.to_string())
-        .filter(|s| s != "")
         .collect();
 
     return tokens;
@@ -68,6 +69,22 @@ fn is_number(str: &str) -> bool {
     return digits.is_match(str);
 }
 
+// fn read(expressions: &mut Vec<Expression>, tokens: Vec<&str>) -> ReadResult {
+//     return match tokens[..] {
+//         [] => {
+//             // So rather than mutating expressions should we be cloning and then reversing?
+//             // Or returning a mutable something in EndOfTokens?
+//             expressions.reverse();
+//             return ReadResult::EndOfTokens(expressions.to_vec());
+//         },
+//         ["(", ..] => {
+//             ReadResult::EndOfExpression(expressions.to_vec(), tokens)
+//         }
+//         // This is just to make the types stop complaining, should be deleted
+//         _ => ReadResult::EndOfExpression(expressions.to_vec(), tokens)
+//     };
+// }
+
 fn main() {
     let stdout  = stdout();
     let message = String::from("Hello fellow Rustaceans!");
@@ -77,5 +94,6 @@ fn main() {
     say(message.as_bytes(), width, &mut writer).unwrap();
 
     assert_eq!(BuiltinFunction::Equals, BuiltinFunction::Equals);
-    assert_eq!(vec!["(", "hello", ")"], tokenize("(hello)"))
+    let greeting = "(hello)".to_string();
+    assert_eq!(vec!["(", "hello", ")"], tokenize(greeting))
 }
