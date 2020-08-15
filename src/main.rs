@@ -41,10 +41,14 @@ enum Expression {
     Continuation(Stack),
 }
 
+use Expression::*;
+
 enum ReadResult {
     EndOfTokens(Vec<Expression>),
     EndOfExpression(Vec<Expression>, Vec<String>)
 }
+
+use ReadResult::*;
 
 fn tokenize(code: &str) -> Vec<String> {
     let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
@@ -68,26 +72,26 @@ fn read(mut expressions: Vec<Expression>, mut tokens: Vec<String>) -> ReadResult
     let head = tokens.pop();
 
     match head {
-        None => ReadResult::EndOfTokens(expressions),
+        None => EndOfTokens(expressions),
         Some(head) => {
             match &head[..] {
                 "(" => {
                     match read(vec![], tokens) {
-                        ReadResult::EndOfTokens(_) => panic!("Unbalanced parens"),
-                        ReadResult::EndOfExpression(nested_expressions, new_tokens) => {
-                            expressions.push(Expression::List(nested_expressions));
+                        EndOfTokens(_) => panic!("Unbalanced parens"),
+                        EndOfExpression(nested_expressions, new_tokens) => {
+                            expressions.push(List(nested_expressions));
                             return read(expressions, new_tokens)
                         }
                     }
                 },
-                ")" => return ReadResult::EndOfExpression(expressions, tokens),
-                "true" => expressions.push(Expression::True),
-                "false" => expressions.push(Expression::False),
+                ")" => return EndOfExpression(expressions, tokens),
+                "true" => expressions.push(True),
+                "false" => expressions.push(False),
                 n if is_number(n) => {
                     let head_as_int: i32 = n.parse().unwrap();
-                    expressions.push(Expression::Number(head_as_int));
+                    expressions.push(Number(head_as_int));
                 },
-                _ => expressions.push(Expression::Symbol(head))
+                _ => expressions.push(Symbol(head))
             }
 
             read(expressions, tokens)
@@ -99,13 +103,23 @@ fn read_tokens(mut tokens: Vec<String>) -> Vec<Expression> {
     tokens.reverse();
 
     match read(vec![], tokens) {
-        ReadResult::EndOfTokens(result) => result,
-        ReadResult::EndOfExpression(_, _) => panic!("Unbalanced parens")
+        EndOfTokens(result) => result,
+        EndOfExpression(_, _) => panic!("Unbalanced parens")
     }
 }
 
 fn parse(code: &str) -> Vec<Expression> {
     read_tokens(tokenize(&code))
+}
+
+// argsToStrings
+
+fn not_special_form(word: Expression) -> bool {
+    word != Symbol("def".to_string())
+        && word != Symbol("if".to_string())
+        && word != Symbol("quote".to_string())
+        && word != Symbol("lambda".to_string())
+        && word != Symbol("call/cc".to_string())
 }
 
 fn main() {
@@ -119,16 +133,16 @@ fn main() {
     assert_eq!(BuiltinFunction::Equals, BuiltinFunction::Equals);
     assert_eq!(vec!["(", "hello", ")"], tokenize(&"(hello)"));
 
-    assert_eq!(vec![Expression::True], parse("true"));
-    assert_eq!(vec![Expression::False], parse("false"));
-    assert_eq!(vec![Expression::Symbol("potato".to_string())], parse("potato"));
-    assert_eq!(vec![Expression::Number(1)], parse("1"));
+    assert_eq!(vec![True], parse("true"));
+    assert_eq!(vec![False], parse("false"));
+    assert_eq!(vec![Symbol("potato".to_string())], parse("potato"));
+    assert_eq!(vec![Number(1)], parse("1"));
     assert_eq!(
         vec![
-            Expression::List(vec![
-                Expression::Symbol("+".to_string()),
-                Expression::Number(1),
-                Expression::Number(2),
+            List(vec![
+                Symbol("+".to_string()),
+                Number(1),
+                Number(2),
             ])
         ],
         parse("(+ 1 2)")
@@ -136,14 +150,14 @@ fn main() {
 
     assert_eq!(
         vec![
-            Expression::List(vec![
-                Expression::Symbol("+".to_string()),
-                Expression::Number(1),
-                Expression::Number(2),
-                Expression::List(vec![
-                    Expression::Symbol("+".to_string()),
-                    Expression::Number(3),
-                    Expression::Number(4),
+            List(vec![
+                Symbol("+".to_string()),
+                Number(1),
+                Number(2),
+                List(vec![
+                    Symbol("+".to_string()),
+                    Number(3),
+                    Number(4),
                 ]),
             ])
         ],
