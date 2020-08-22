@@ -1,54 +1,15 @@
 #![allow(dead_code)]
+#![allow(unused_imports)]
 
 use ferris_says::say;
 use std::io::{stdout, BufWriter};
-use std::collections::HashMap;
 use regex::Regex;
 
-#[derive(PartialEq, Debug, Clone)]
-enum BuiltinFunction {
-    Equals,
-    Plus,
-    Minus,
-    Times,
-    First,
-    Println,
-}
+mod standard_library;
+use standard_library::builtin_apply;
 
-type Environment = HashMap<String, Expression>;
-
-#[derive(PartialEq, Debug, Clone)]
-enum Frame {
-    Start(Environment, Expression),
-    AddToEnv(Environment, String),
-    PushBranch(Environment, Expression, Expression),
-    EvalFn(Environment, Vec<Expression>),
-    EvalArgs(Environment, Expression, Vec<Expression>, Vec<Expression>),
-    Stop(Environment, Expression),
-}
-
-type Stack = Vec<Frame>;
-
-#[derive(PartialEq, Debug, Clone)]
-enum Expression {
-    True,
-    False,
-    Number(i32),
-    Symbol(String),
-    List(Vec<Expression>),
-    Function(BuiltinFunction),
-    Lambda(Environment, Vec<String>, Box<Expression>), // Why did I have the ref(env)?
-    Continuation(Stack),
-}
-
-use Expression::*;
-
-enum ReadResult {
-    EndOfTokens(Vec<Expression>),
-    EndOfExpression(Vec<Expression>, Vec<String>)
-}
-
-use ReadResult::*;
+mod core_types;
+use core_types::*;
 
 fn tokenize(code: &str) -> Vec<String> {
     let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
@@ -112,7 +73,9 @@ fn parse(code: &str) -> Vec<Expression> {
     read_tokens(tokenize(&code))
 }
 
-// argsToStrings
+// args_to_env(env, names, values)
+
+// args_to_strings(env)
 
 fn not_special_form(word: Expression) -> bool {
     word != Symbol("def".to_string())
@@ -120,6 +83,15 @@ fn not_special_form(word: Expression) -> bool {
         && word != Symbol("quote".to_string())
         && word != Symbol("lambda".to_string())
         && word != Symbol("call/cc".to_string())
+}
+
+fn apply(_env: Environment, fun: Expression, _args: Vec<Expression>, _stack: Stack) -> Stack {
+    match fun {
+        Function(_fun) => panic!("function application not implemented"),
+        Lambda(_environment, _arg_names, _body) => panic!("args to env need to be implemented"),
+        Continuation(_continuation_stack) => panic!("continuations not implemented"),
+        _ => panic!("Lists must start with functions")
+    }
 }
 
 fn main() {
