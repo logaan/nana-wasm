@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use phf::phf_map;
 use crate::core_types::*;
 use BuiltinFunction::*;
 
@@ -14,3 +16,15 @@ pub fn builtin_apply(func: BuiltinFunction, args: Vec<Expression>) -> Expression
         _ => panic!("ArgumentError on builtin function")
     }
 }
+
+// Would prefer if this was an Expression. Can it at least be dumped in to one?
+static ENVIRONMENT: phf::Map<&'static str, Expression> = phf_map! {
+    "true" => True,
+    "false" => False,
+    "=" => Function(Equals),
+    "+" => Function(Plus),
+    "-" => Function(Minus),
+    "*" => Function(Times),
+    "first" => Function(First),
+    "println" => Function(Println)
+};
