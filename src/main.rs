@@ -73,9 +73,9 @@ fn parse(code: &str) -> Vec<Expression> {
     read_tokens(tokenize(&code))
 }
 
-// args_to_env(env, names, values)
+// TODO: args_to_env(env: Environment, names: Vec<String>, values: Vec<Expression>) -> Environment
 
-// args_to_strings(env)
+// TODO: args_to_strings(exp: Expression) -> String
 
 fn not_special_form(word: Expression) -> bool {
     word != Symbol("def".to_string())
@@ -85,6 +85,7 @@ fn not_special_form(word: Expression) -> bool {
         && word != Symbol("call/cc".to_string())
 }
 
+// TODO: Implement apply
 fn apply(_env: Environment, fun: Expression, _args: Vec<Expression>, _stack: Stack) -> Stack {
     match fun {
         Function(_fun) => panic!("function application not implemented"),
@@ -94,6 +95,19 @@ fn apply(_env: Environment, fun: Expression, _args: Vec<Expression>, _stack: Sta
     }
 }
 
+// TODO: These block of functions all have to be done together. They refer to one another.
+// TODO: eval_start(env: Environment, expr: Expression) -> Frame
+// TODO: eval_frame(stack: Stack) -> Stack
+// TODO: eval_stepper(stack: Stack) -> (Environment, Expression)
+
+// TODO: eval(expr: Expression, env: Environment) -> Expression
+
+// TODO: eval_expressions(env: Environment, code: String) -> (Environment, Expression)
+
+// TODO: evalOnceOff(code: String) -> Expression
+
+
+// TODO: Re-write main to be like Hello.re
 fn main() {
     let stdout  = stdout();
     let message = String::from("Hello fellow Rustaceans!");
