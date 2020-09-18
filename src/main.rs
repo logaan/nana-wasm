@@ -73,8 +73,19 @@ fn parse(code: &str) -> Vec<Expression> {
     read_tokens(tokenize(&code))
 }
 
-// TODO: args_to_env(env: Environment, names: Vec<String>, values: Vec<Expression>) -> Environment
+// Why do I have to mark names and values as mut? Aren't I taking ownership, and
+// so the ability to do whatever I like with them? Not just a reference.
+fn args_to_env(env: Environment, mut names: Vec<String>, mut values: Vec<Expression>) -> Environment {
+    let mut new_env = env.clone();
 
+    for n in 0..names.len() {
+        new_env.insert(names.remove(n), values.remove(n));
+    }
+
+    return new_env;
+}
+
+// I wonder if I could do away with this function by using Symbols as keys in the env?
 fn args_to_strings(exp: Expression) -> String {
     match exp {
         Symbol(name) => name,
