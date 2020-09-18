@@ -75,7 +75,12 @@ fn parse(code: &str) -> Vec<Expression> {
 
 // TODO: args_to_env(env: Environment, names: Vec<String>, values: Vec<Expression>) -> Environment
 
-// TODO: args_to_strings(exp: Expression) -> String
+fn args_to_strings(exp: Expression) -> String {
+    match exp {
+        Symbol(name) => name,
+        _ => panic!("All arguments must be symbols")
+    }
+}
 
 fn not_special_form(word: Expression) -> bool {
     word != Symbol("def".to_string())
