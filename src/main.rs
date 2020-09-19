@@ -10,6 +10,7 @@ use standard_library::builtin_apply;
 
 mod core_types;
 use core_types::*;
+use Frame::*;
 
 fn tokenize(code: &str) -> Vec<String> {
     let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
@@ -96,32 +97,70 @@ fn not_special_form(word: Expression) -> bool {
 fn apply(env: Environment, fun: Expression, args: Vec<Expression>, mut stack: Stack) -> Stack {
     match fun {
         Function(fun) => {
-            stack.push(Frame::Stop(env, builtin_apply(fun, args)));
+            stack.push(Stop(env, builtin_apply(fun, args)));
             stack
-        },
+        }
         Lambda(environment, arg_names, body) => {
-            stack.push(Frame::Start(args_to_env(environment, arg_names, args), *body));
+            stack.push(Start(args_to_env(environment, arg_names, args), *body));
             stack
         }
         Continuation(mut continuation_stack) => {
-            continuation_stack.push(Frame::Stop(env, args.into_iter().nth(0).expect("??")));
+            continuation_stack.push(Stop(env, args.into_iter().nth(0).expect("??")));
             continuation_stack
         }
         _ => panic!("Lists must start with functions"),
     }
 }
 
-// TODO: eval_start(env: Environment, expr: Expression) -> Frame
+fn eval_start(env: Environment, expr: Expression) -> Frame {
+    match expr {
+        True => Stop(env, True),
+        False => Stop(env, False),
+        Number(i) => Stop(env, Number(i)),
+        Symbol(s) => {
+            let value = env.get(&s).expect("Not found").clone();
+            Stop(env, value)
+        }
+        List(expressions) => {
+            let first = &expressions[0];
 
-// TODO: eval_frame(stack: Stack) -> Stack
+            match first {
+                Symbol(symbol_text) => match symbol_text.as_str() {
+                    "quote" => Stop(env, expressions[1].clone()),
+                    // Without good deep pattern matching this look pretty aweful.
+                    "lambda" => match &expressions[1] {
+                        List(args_exprs) => {
+                            let args_as_strings: Vec<String> = args_exprs
+                                .into_iter()
+                                .map(|e| args_to_strings(e.clone()))
+                                .collect();
+                            Stop(
+                                env.clone(),
+                                Lambda(env, args_as_strings, Box::new(expressions[2].clone())),
+                            )
+                        }
+                        _ => panic!("Lambda must be followed by arguments"),
+                    },
+                    _ => panic!("Lists must start with a fn"),
+                },
+                _ => panic!("Lists must start with a fn"),
+            }
+        },
+        Function(_) => panic!("You can't eval a function"),
+        Lambda(_, _, _) => panic!("You can't eval a lambda"),
+        Continuation(_) => Stop(env, expr)
+    }
+}
 
-// TODO: eval_stepper(stack: Stack) -> (Environment, Expression)
+// TODO: fn eval_frame(stack: Stack) -> Stack
 
-// TODO: eval(expr: Expression, env: Environment) -> Expression
+// TODO: fn eval_stepper(stack: Stack) -> (Environment, Expression)
 
-// TODO: eval_expressions(env: Environment, code: String) -> (Environment, Expression)
+// TODO: fn eval(expr: Expression, env: Environment) -> Expression
 
-// TODO: evalOnceOff(code: String) -> Expression
+// TODO: fn eval_expressions(env: Environment, code: String) -> (Environment, Expression)
+
+// TODO: fn evalOnceOff(code: String) -> Expression
 
 // TODO: Re-write main to be like Hello.re
 fn main() {
