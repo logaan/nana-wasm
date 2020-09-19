@@ -11,6 +11,8 @@ use standard_library::builtin_apply;
 mod core_types;
 use core_types::*;
 
+use std::collections::HashMap;
+
 fn tokenize(code: &str) -> Vec<String> {
     let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
     let whitespace = Regex::new(r"[ \n]+").unwrap();
@@ -73,16 +75,10 @@ fn parse(code: &str) -> Vec<Expression> {
     read_tokens(tokenize(&code))
 }
 
-// Why do I have to mark names and values as mut? Aren't I taking ownership, and
-// so the ability to do whatever I like with them? Not just a reference.
-fn args_to_env(env: Environment, mut names: Vec<String>, mut values: Vec<Expression>) -> Environment {
-    let mut new_env = env.clone();
+fn args_to_env(env: Environment, names: Vec<String>, values: Vec<Expression>) -> Environment {
+    let new_env: Environment = names.into_iter().zip(values.into_iter()).collect();
 
-    for n in 0..names.len() {
-        new_env.insert(names.remove(n), values.remove(n));
-    }
-
-    return new_env;
+    return env.into_iter().chain(new_env).collect();
 }
 
 // I wonder if I could do away with this function by using Symbols as keys in the env?
