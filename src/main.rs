@@ -93,7 +93,6 @@ fn not_special_form(word: Expression) -> bool {
         && word != Symbol("call/cc".to_string())
 }
 
-// TODO: Implement apply
 fn apply(env: Environment, fun: Expression, args: Vec<Expression>, mut stack: Stack) -> Stack {
     match fun {
         Function(fun) => {
@@ -112,9 +111,10 @@ fn apply(env: Environment, fun: Expression, args: Vec<Expression>, mut stack: St
     }
 }
 
-// TODO: These block of functions all have to be done together. They refer to one another.
 // TODO: eval_start(env: Environment, expr: Expression) -> Frame
+
 // TODO: eval_frame(stack: Stack) -> Stack
+
 // TODO: eval_stepper(stack: Stack) -> (Environment, Expression)
 
 // TODO: eval(expr: Expression, env: Environment) -> Expression
