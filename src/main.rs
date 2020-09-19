@@ -2,8 +2,8 @@
 #![allow(unused_imports)]
 
 use ferris_says::say;
-use std::io::{stdout, BufWriter};
 use regex::Regex;
+use std::io::{stdout, BufWriter};
 
 mod standard_library;
 use standard_library::builtin_apply;
@@ -11,15 +11,13 @@ use standard_library::builtin_apply;
 mod core_types;
 use core_types::*;
 
-use std::collections::HashMap;
-
 fn tokenize(code: &str) -> Vec<String> {
     let parens = Regex::new(r"(?P<p>[\(\)])").unwrap();
     let whitespace = Regex::new(r"[ \n]+").unwrap();
     let spacious_code = parens.replace_all(code, " $p ");
     let tokens = whitespace
         .split(&spacious_code)
-        .filter(|s| !s.is_empty() )
+        .filter(|s| !s.is_empty())
         .map(|s| s.to_string())
         .collect();
 
@@ -38,13 +36,11 @@ fn read(mut expressions: Vec<Expression>, mut tokens: Vec<String>) -> ReadResult
         None => EndOfTokens(expressions),
         Some(head) => {
             match &head[..] {
-                "(" => {
-                    match read(vec![], tokens) {
-                        EndOfTokens(_) => panic!("Unbalanced parens"),
-                        EndOfExpression(nested_expressions, new_tokens) => {
-                            expressions.push(List(nested_expressions));
-                            return read(expressions, new_tokens)
-                        }
+                "(" => match read(vec![], tokens) {
+                    EndOfTokens(_) => panic!("Unbalanced parens"),
+                    EndOfExpression(nested_expressions, new_tokens) => {
+                        expressions.push(List(nested_expressions));
+                        return read(expressions, new_tokens);
                     }
                 },
                 ")" => return EndOfExpression(expressions, tokens),
@@ -53,8 +49,8 @@ fn read(mut expressions: Vec<Expression>, mut tokens: Vec<String>) -> ReadResult
                 n if is_number(n) => {
                     let head_as_int: i32 = n.parse().unwrap();
                     expressions.push(Number(head_as_int));
-                },
-                _ => expressions.push(Symbol(head))
+                }
+                _ => expressions.push(Symbol(head)),
             }
 
             read(expressions, tokens)
@@ -67,7 +63,7 @@ fn read_tokens(mut tokens: Vec<String>) -> Vec<Expression> {
 
     match read(vec![], tokens) {
         EndOfTokens(result) => result,
-        EndOfExpression(_, _) => panic!("Unbalanced parens")
+        EndOfExpression(_, _) => panic!("Unbalanced parens"),
     }
 }
 
@@ -85,7 +81,7 @@ fn args_to_env(env: Environment, names: Vec<String>, values: Vec<Expression>) ->
 fn args_to_strings(exp: Expression) -> String {
     match exp {
         Symbol(name) => name,
-        _ => panic!("All arguments must be symbols")
+        _ => panic!("All arguments must be symbols"),
     }
 }
 
@@ -98,12 +94,21 @@ fn not_special_form(word: Expression) -> bool {
 }
 
 // TODO: Implement apply
-fn apply(_env: Environment, fun: Expression, _args: Vec<Expression>, _stack: Stack) -> Stack {
+fn apply(env: Environment, fun: Expression, args: Vec<Expression>, mut stack: Stack) -> Stack {
     match fun {
-        Function(_fun) => panic!("function application not implemented"),
-        Lambda(_environment, _arg_names, _body) => panic!("args to env need to be implemented"),
-        Continuation(_continuation_stack) => panic!("continuations not implemented"),
-        _ => panic!("Lists must start with functions")
+        Function(fun) => {
+            stack.push(Frame::Stop(env, builtin_apply(fun, args)));
+            stack
+        },
+        Lambda(environment, arg_names, body) => {
+            stack.push(Frame::Start(args_to_env(environment, arg_names, args), *body));
+            stack
+        }
+        Continuation(mut continuation_stack) => {
+            continuation_stack.push(Frame::Stop(env, args.into_iter().nth(0).expect("??")));
+            continuation_stack
+        }
+        _ => panic!("Lists must start with functions"),
     }
 }
 
@@ -118,12 +123,11 @@ fn apply(_env: Environment, fun: Expression, _args: Vec<Expression>, _stack: Sta
 
 // TODO: evalOnceOff(code: String) -> Expression
 
-
 // TODO: Re-write main to be like Hello.re
 fn main() {
-    let stdout  = stdout();
+    let stdout = stdout();
     let message = String::from("Hello fellow Rustaceans!");
-    let width   = message.chars().count();
+    let width = message.chars().count();
 
     let mut writer = BufWriter::new(stdout.lock());
     say(message.as_bytes(), width, &mut writer).unwrap();
@@ -136,29 +140,17 @@ fn main() {
     assert_eq!(vec![Symbol("potato".to_string())], parse("potato"));
     assert_eq!(vec![Number(1)], parse("1"));
     assert_eq!(
-        vec![
-            List(vec![
-                Symbol("+".to_string()),
-                Number(1),
-                Number(2),
-            ])
-        ],
+        vec![List(vec![Symbol("+".to_string()), Number(1), Number(2),])],
         parse("(+ 1 2)")
     );
 
     assert_eq!(
-        vec![
-            List(vec![
-                Symbol("+".to_string()),
-                Number(1),
-                Number(2),
-                List(vec![
-                    Symbol("+".to_string()),
-                    Number(3),
-                    Number(4),
-                ]),
-            ])
-        ],
+        vec![List(vec![
+            Symbol("+".to_string()),
+            Number(1),
+            Number(2),
+            List(vec![Symbol("+".to_string()), Number(3), Number(4),]),
+        ])],
         parse("(+ 1 2 (+ 3 4))")
     );
 }
