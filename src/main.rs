@@ -177,7 +177,13 @@ fn eval_frame(mut stack: Stack) -> Stack {
                         },
                         _ => panic!("def must be followed by a name"),
                         }
-                    "if" => panic!("Not yet implemented"),
+                    "if" => {
+                        let conditional_expr = exprs.pop().expect("if must be followed by a conditional expression");
+                        let then_expr = exprs.pop().expect("if must be followed by a then expression");
+                        let else_expr = exprs.pop().expect("if must be followed by a else expression");
+                        stack.push(PushBranch(env.clone(), then_expr, else_expr));
+                        stack.push(Start(env, conditional_expr));
+                    },
                     "call/cc" => panic!("Not yet implemented"),
                     _ => panic!("List must start with a fn or special form"),
                 },
