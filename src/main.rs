@@ -121,6 +121,7 @@ fn eval_start(env: Environment, expr: Expression) -> Frame {
             let value = env.get(&s).expect("Not found").clone();
             Stop(env, value)
         }
+        // This whole block is a mess. Doesn't pattern match well.
         List(expressions) => {
             let first = &expressions[0];
 
