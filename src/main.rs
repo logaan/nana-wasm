@@ -160,52 +160,56 @@ fn eval_start(env: Environment, expr: Expression) -> Frame {
 // nothing on the stack.
 fn eval_frame(mut stack: Stack) -> Stack {
     match stack.pop().expect("Nothing on the stack.") {
-        Start(env, expr) => match expr {
-            List(mut exprs) => match exprs
-                .pop()
-                .expect("List must start with a fn or special form")
-            {
-                // Probably an unnecessary clone()
-                func if not_special_form(func.clone()) => {
-                    // These clones might be ok... or could maybe be immutable refs?
-                    stack.push(EvalFn(env.clone(), exprs));
-                    stack.push(Start(env, func));
-                }
-                Symbol(name) => match name.as_str() {
-                    "def" => match exprs.pop().expect("def must be followed by a name") {
-                        Symbol(name) => {
-                            let value_expr = exprs
-                                .pop()
-                                .expect("def must be followed by a name and an expression");
-                            stack.push(AddToEnv(env.clone(), name));
-                            stack.push(Start(env, value_expr));
-                        }
-                        _ => panic!("def must be followed by a name"),
-                    },
-                    "if" => {
-                        let conditional_expr = exprs
-                            .pop()
-                            .expect("if must be followed by a conditional expression");
-                        let then_expr = exprs
-                            .pop()
-                            .expect("if must be followed by a then expression");
-                        let else_expr = exprs
-                            .pop()
-                            .expect("if must be followed by a else expression");
-                        stack.push(PushBranch(env.clone(), then_expr, else_expr));
-                        stack.push(Start(env, conditional_expr));
-                    }
-                    "call/cc" => {
-                        let func = exprs.pop().expect("call/cc must be followed by a function");
-                        stack.push(EvalFn(env.clone(), vec![Continuation(stack.clone())]));
+        Start(env, expr) => {
+            match expr {
+                List(mut exprs) => match exprs
+                    .pop()
+                    .expect("List must start with a fn or special form")
+                {
+                    // Probably an unnecessary clone()
+                    func if not_special_form(func.clone()) => {
+                        // These clones might be ok... or could maybe be immutable refs?
+                        stack.push(EvalFn(env.clone(), exprs));
                         stack.push(Start(env, func));
                     }
+                    Symbol(name) => match name.as_str() {
+                        "def" => match exprs.pop().expect("def must be followed by a name") {
+                            Symbol(name) => {
+                                let value_expr = exprs
+                                    .pop()
+                                    .expect("def must be followed by a name and an expression");
+                                stack.push(AddToEnv(env.clone(), name));
+                                stack.push(Start(env, value_expr));
+                            }
+                            _ => panic!("def must be followed by a name"),
+                        },
+                        "if" => {
+                            let conditional_expr = exprs
+                                .pop()
+                                .expect("if must be followed by a conditional expression");
+                            let then_expr = exprs
+                                .pop()
+                                .expect("if must be followed by a then expression");
+                            let else_expr = exprs
+                                .pop()
+                                .expect("if must be followed by a else expression");
+                            stack.push(PushBranch(env.clone(), then_expr, else_expr));
+                            stack.push(Start(env, conditional_expr));
+                        }
+                        "call/cc" => {
+                            let func = exprs.pop().expect("call/cc must be followed by a function");
+                            stack.push(EvalFn(env.clone(), vec![Continuation(stack.clone())]));
+                            stack.push(Start(env, func));
+                        }
+                        _ => panic!("List must start with a fn or special form"),
+                    },
                     _ => panic!("List must start with a fn or special form"),
                 },
-                _ => panic!("List must start with a fn or special form"),
-            },
-            _ => stack.push(eval_start(env, expr)),
-        },
+                _ => stack.push(eval_start(env, expr)),
+            }
+
+            stack
+        }
 
         Stop(stop_env, expr) => {
             let next = stack.pop().expect("Don't know how to handle this stop.");
@@ -213,7 +217,9 @@ fn eval_frame(mut stack: Stack) -> Stack {
             // Cloning here to avoid move issues when inserting into lambda env
             match (expr.clone(), next) {
                 (True, PushBranch(env, then_expr, _else_expr)) => stack.push(Start(env, then_expr)),
-                (False, PushBranch(env, _then_expr, else_expr)) => stack.push(Start(env, else_expr)),
+                (False, PushBranch(env, _then_expr, else_expr)) => {
+                    stack.push(Start(env, else_expr))
+                }
                 (Lambda(mut env_ref, _args, _body), AddToEnv(env, name)) => {
                     let new_env = env.clone();
                     // mutating the lambda's expression to add it.
@@ -221,30 +227,41 @@ fn eval_frame(mut stack: Stack) -> Stack {
                     // This is the second clone of expr.. feels extra bad.
                     env_ref.insert(name, expr.clone());
                     stack.push(Stop(new_env, expr));
-                },
+                }
                 (result, AddToEnv(env, name)) => {
                     let mut new_env = env.clone();
                     new_env.insert(name, result.clone());
                     stack.push(Stop(new_env, result));
-                },
-                (result, EvalFn(env, arg_exprs)) => stack.push(EvalArgs(env, result, vec![], arg_exprs)),
+                }
+                (result, EvalFn(env, arg_exprs)) => {
+                    stack.push(EvalArgs(env, result, vec![], arg_exprs))
+                }
                 (result, EvalArgs(env, fun, mut evaluated, unevaluated)) => {
                     evaluated.push(result);
                     stack.push(EvalArgs(env, fun, evaluated, unevaluated));
-                },
+                }
                 (_result, Start(_, expr)) => stack.push(Start(stop_env, expr)),
                 (_, PushBranch(_, _, _)) => panic!("if condition evaluated to non-boolean"),
                 _result => panic!("Don't know how to handle this stop"),
             }
-        },
 
-        EvalArgs(_env, _fun, _evaluated, _unevaluated) => panic!("Not yet implemented"),
+            stack
+        }
+
+        EvalArgs(env, fun, evaluated, mut unevaluated) => match unevaluated.pop() {
+            Some(next) => {
+                stack.push(EvalArgs(env.clone(), fun, evaluated, unevaluated));
+                stack.push(Start(env, next));
+                stack
+            }
+            // Maybe evaluated should be reversed
+            None => apply(env, fun, evaluated, stack),
+        },
 
         PushBranch(_, _, _) => panic!("PushBranch should never appear int he head of the stack."),
         AddToEnv(_, _) => panic!("AddToEnv should never appear int he head of the stack."),
         EvalFn(_, _) => panic!("EvalFn should never appear int he head of the stack."),
     }
-    stack
 }
 
 // TODO: fn eval_stepper(stack: Stack) -> (Environment, Expression)
