@@ -146,14 +146,28 @@ fn eval_start(env: Environment, expr: Expression) -> Frame {
                 },
                 _ => panic!("Lists must start with a fn"),
             }
-        },
+        }
         Function(_) => panic!("You can't eval a function"),
         Lambda(_, _, _) => panic!("You can't eval a lambda"),
-        Continuation(_) => Stop(env, expr)
+        Continuation(_) => Stop(env, expr),
     }
 }
 
-// TODO: fn eval_frame(stack: Stack) -> Stack
+// So... only some frames can be the root of the stack. What if we had two
+// interfaces, one for things that can be at the root, and another for
+// everything that can appear polymorphically after that. Then you could have
+// each element point to the next one. And ensure that it's impossible to have
+// nothing on the stack.
+fn eval_frame(mut stack: Stack) -> Stack {
+    match stack.pop().expect("Nothing on the stack.") {
+        Start(_env, _expr) => panic!("Not yet implemented"),
+        Stop(_env, _string) => panic!("Not yet implemented"),
+        EvalArgs(_env, _fun, _evaluated, _unevaluated) => panic!("Not yet implemented"),
+        PushBranch(_, _, _) => panic!("PushBranch should never appear int he head of the stack."),
+        AddToEnv(_, _) => panic!("AddToEnv should never appear int he head of the stack."),
+        EvalFn(_, _) => panic!("EvalFn should never appear int he head of the stack."),
+    }
+}
 
 // TODO: fn eval_stepper(stack: Stack) -> (Environment, Expression)
 
