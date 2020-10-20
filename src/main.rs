@@ -207,14 +207,14 @@ fn eval_frame(mut stack: Stack) -> Stack {
             _ => stack.push(eval_start(env, expr)),
         },
 
-        Stop(_env, expr) => {
-            let next = stack.pop();
+        Stop(stop_env, expr) => {
+            let next = stack.pop().expect("Don't know how to handle this stop.");
 
             // Cloning here to avoid move issues when inserting into lambda env
             match (expr.clone(), next) {
-                (True, Some(PushBranch(env, then_expr, _else_expr))) => stack.push(Start(env, then_expr)),
-                (False, Some(PushBranch(env, _then_expr, else_expr))) => stack.push(Start(env, else_expr)),
-                (Lambda(mut env_ref, _args, _body), Some(AddToEnv(env, name))) => {
+                (True, PushBranch(env, then_expr, _else_expr)) => stack.push(Start(env, then_expr)),
+                (False, PushBranch(env, _then_expr, else_expr)) => stack.push(Start(env, else_expr)),
+                (Lambda(mut env_ref, _args, _body), AddToEnv(env, name)) => {
                     let new_env = env.clone();
                     // mutating the lambda's expression to add it.
                     // was a ref in reason.
@@ -222,13 +222,19 @@ fn eval_frame(mut stack: Stack) -> Stack {
                     env_ref.insert(name, expr.clone());
                     stack.push(Stop(new_env, expr));
                 },
-                (result, Some(AddToEnv(env, name))) => {
+                (result, AddToEnv(env, name)) => {
                     let mut new_env = env.clone();
                     new_env.insert(name, result.clone());
                     stack.push(Stop(new_env, result));
                 },
-                (result, Some(EvalFn(env, arg_exprs))) => stack.push(EvalArgs(env, result, vec![], arg_exprs)),
-                _result => panic!("NYI"),
+                (result, EvalFn(env, arg_exprs)) => stack.push(EvalArgs(env, result, vec![], arg_exprs)),
+                (result, EvalArgs(env, fun, mut evaluated, unevaluated)) => {
+                    evaluated.push(result);
+                    stack.push(EvalArgs(env, fun, evaluated, unevaluated));
+                },
+                (_result, Start(_, expr)) => stack.push(Start(stop_env, expr)),
+                (_, PushBranch(_, _, _)) => panic!("if condition evaluated to non-boolean"),
+                _result => panic!("Don't know how to handle this stop"),
             }
         },
 
