@@ -184,7 +184,11 @@ fn eval_frame(mut stack: Stack) -> Stack {
                         stack.push(PushBranch(env.clone(), then_expr, else_expr));
                         stack.push(Start(env, conditional_expr));
                     },
-                    "call/cc" => panic!("Not yet implemented"),
+                    "call/cc" => {
+                        let func = exprs.pop().expect("call/cc must be followed by a function");
+                        stack.push(EvalFn(env.clone(), vec![Continuation(stack.clone())]));
+                        stack.push(Start(env, func));
+                    },
                     _ => panic!("List must start with a fn or special form"),
                 },
                 _ => panic!("List must start with a fn or special form"),
