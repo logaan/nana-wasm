@@ -296,8 +296,8 @@ fn eval_expressions(env: Environment, code: String) -> (Environment, Expression)
     eval_stepper(stack)
 }
 
-fn eval_once_off(code: String) -> Expression {
-    let (_, result) = eval_expressions(standard_library::environment(), code);
+fn eval_once_off(code: &str) -> Expression {
+    let (_, result) = eval_expressions(standard_library::environment(), code.to_string());
     result
 }
 
@@ -331,4 +331,12 @@ fn main() {
         ])],
         parse("(+ 1 2 (+ 3 4))")
     );
+
+    assert_eq!(True, eval_once_off("true"));
+    assert_eq!(False, eval_once_off("false"));
+    assert_eq!(False, eval_once_off("true false"));
+
+    assert_eq!(Number(1), eval_once_off("1"));
+    assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
+
 }
