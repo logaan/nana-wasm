@@ -4,6 +4,7 @@
 use ferris_says::say;
 use regex::Regex;
 use std::io::{stdout, BufWriter};
+use std::env;
 
 mod standard_library;
 use standard_library::builtin_apply;
@@ -264,7 +265,25 @@ fn eval_frame(mut stack: Stack) -> Stack {
     }
 }
 
-// TODO: fn eval_stepper(stack: Stack) -> (Environment, Expression)
+fn eval_stepper(stack: Stack) -> (Environment, Expression) {
+    if !env::var("VERBOSE").is_err() {
+        println!("{:?}", stack);
+    }
+
+    if stack.is_empty() {
+        panic!("Nothing on the stack.");
+    } else {
+        // Not confident last() is right, but if we've been pushing and popping
+        // it should be.
+        match stack.last().expect("literally unreachable") {
+            // These are both references.... hmm. Cloning here feels super
+            // unnecessary.
+            Stop(env, expr) => (env.clone(), expr.clone()),
+            _frame => eval_stepper(eval_frame(stack)),
+        }
+
+    }
+}
 
 // TODO: fn eval(expr: Expression, env: Environment) -> Expression
 
