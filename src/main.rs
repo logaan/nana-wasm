@@ -3,8 +3,8 @@
 
 use ferris_says::say;
 use regex::Regex;
-use std::io::{stdout, BufWriter};
 use std::env;
+use std::io::{stdout, BufWriter};
 
 mod standard_library;
 use standard_library::builtin_apply;
@@ -281,7 +281,6 @@ fn eval_stepper(stack: Stack) -> (Environment, Expression) {
             Stop(env, expr) => (env.clone(), expr.clone()),
             _frame => eval_stepper(eval_frame(stack)),
         }
-
     }
 }
 
