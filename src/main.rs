@@ -286,7 +286,15 @@ fn eval_stepper(stack: Stack) -> (Environment, Expression) {
 
 // TODO: fn eval(expr: Expression, env: Environment) -> Expression
 
-// TODO: fn eval_expressions(env: Environment, code: String) -> (Environment, Expression)
+fn eval_expressions(env: Environment, code: String) -> (Environment, Expression) {
+    // Some bad clones here
+    let stack = parse(code.as_str())
+        .iter()
+        .map(|expression| Start(env.clone(), expression.clone()))
+        .collect();
+
+    eval_stepper(stack)
+}
 
 // TODO: fn evalOnceOff(code: String) -> Expression
 
