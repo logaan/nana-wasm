@@ -296,7 +296,10 @@ fn eval_expressions(env: Environment, code: String) -> (Environment, Expression)
     eval_stepper(stack)
 }
 
-// TODO: fn evalOnceOff(code: String) -> Expression
+fn eval_once_off(code: String) -> Expression {
+    let (_, result) = eval_expressions(standard_library::environment(), code);
+    result
+}
 
 // TODO: Re-write main to be like Hello.re
 fn main() {
