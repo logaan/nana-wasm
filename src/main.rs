@@ -88,6 +88,8 @@ fn args_to_strings(exp: Expression) -> String {
 }
 
 fn not_special_form(word: Expression) -> bool {
+    println!("Not special form: {:?}", word);
+
     word != Symbol("def".to_string())
         && word != Symbol("if".to_string())
         && word != Symbol("quote".to_string())
@@ -163,10 +165,9 @@ fn eval_frame(mut stack: Stack) -> Stack {
     match stack.pop().expect("Nothing on the stack.") {
         Start(env, expr) => {
             match expr {
-                List(mut exprs) => match exprs
-                    .pop()
-                    .expect("List must start with a fn or special form")
-                {
+                // This seems like a terrible way to get the first element from
+                // the list
+                List(mut exprs) => match exprs.remove(0) {
                     // Probably an unnecessary clone()
                     func if not_special_form(func.clone()) => {
                         // These clones might be ok... or could maybe be immutable refs?
@@ -185,15 +186,11 @@ fn eval_frame(mut stack: Stack) -> Stack {
                             _ => panic!("def must be followed by a name"),
                         },
                         "if" => {
-                            let conditional_expr = exprs
-                                .pop()
-                                .expect("if must be followed by a conditional expression");
-                            let then_expr = exprs
-                                .pop()
-                                .expect("if must be followed by a then expression");
-                            let else_expr = exprs
-                                .pop()
-                                .expect("if must be followed by a else expression");
+                            // I would maybe prefer to have a result here. So
+                            // that I can expect with a helpful error message.
+                            let conditional_expr = exprs.remove(0);
+                            let then_expr = exprs.remove(0);
+                            let else_expr = exprs.remove(0);
                             stack.push(PushBranch(env.clone(), then_expr, else_expr));
                             stack.push(Start(env, conditional_expr));
                         }
@@ -217,7 +214,10 @@ fn eval_frame(mut stack: Stack) -> Stack {
 
             // Cloning here to avoid move issues when inserting into lambda env
             match (expr.clone(), next) {
-                (True, PushBranch(env, then_expr, _else_expr)) => stack.push(Start(env, then_expr)),
+                (True, PushBranch(env, then_expr, _else_expr)) => {
+                    println!("Pushing {:?}", Start(env.clone(), then_expr.clone()));
+                    stack.push(Start(env, then_expr))
+                }
                 (False, PushBranch(env, _then_expr, else_expr)) => {
                     stack.push(Start(env, else_expr))
                 }
@@ -270,17 +270,15 @@ fn eval_stepper(stack: Stack) -> (Environment, Expression) {
         println!("{:?}", stack);
     }
 
-    if stack.is_empty() {
-        panic!("Nothing on the stack.");
-    } else {
-        // Not confident last() is right, but if we've been pushing and popping
-        // it should be.
-        match stack.last().expect("literally unreachable") {
+    match stack.len() {
+        0 => panic!("Nothing on the stack."),
+        1 => match stack.last().expect("literally unreachable") {
             // These are both references.... hmm. Cloning here feels super
             // unnecessary.
             Stop(env, expr) => (env.clone(), expr.clone()),
             _frame => eval_stepper(eval_frame(stack)),
-        }
+        },
+        _ => eval_stepper(eval_frame(stack)),
     }
 }
 
@@ -288,10 +286,12 @@ fn eval_stepper(stack: Stack) -> (Environment, Expression) {
 
 fn eval_expressions(env: Environment, code: String) -> (Environment, Expression) {
     // Some bad clones here
-    let stack = parse(code.as_str())
+    let mut stack: Stack = parse(code.as_str())
         .iter()
         .map(|expression| Start(env.clone(), expression.clone()))
         .collect();
+
+    stack.reverse();
 
     eval_stepper(stack)
 }
@@ -337,6 +337,14 @@ fn main() {
     assert_eq!(False, eval_once_off("true false"));
 
     assert_eq!(Number(1), eval_once_off("1"));
-    assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
 
+    println!("  ---  (if true 1 2)  ---  ");
+    // If should be going to PushBranch not EvalFn
+    // Also why are only the first three tokens part of evalfn?
+    assert_eq!(Number(1), eval_once_off("(if true 1 2)"));
+
+    println!("  ---  (+ 1 1)  ---  ");
+    // Could be that there was pattern matching for [Stop()] in the reason
+    // version and we're just running it for [Stop(), ...]
+    assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
 }
