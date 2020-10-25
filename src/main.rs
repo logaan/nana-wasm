@@ -88,8 +88,6 @@ fn args_to_strings(exp: Expression) -> String {
 }
 
 fn not_special_form(word: Expression) -> bool {
-    println!("Not special form: {:?}", word);
-
     word != Symbol("def".to_string())
         && word != Symbol("if".to_string())
         && word != Symbol("quote".to_string())
@@ -340,5 +338,6 @@ fn main() {
     assert_eq!(Number(1), eval_once_off("1"));
     assert_eq!(Number(1), eval_once_off("(if true 1 2)"));
     assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
-    assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"))
+    assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"));
+    assert_eq!(Symbol("foo".to_string()), eval_once_off("(println (quote foo))"));
 }
