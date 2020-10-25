@@ -218,11 +218,12 @@ fn eval_frame(mut stack: Stack) -> Stack {
                     stack.push(Start(env, else_expr))
                 }
                 (Lambda(mut env_ref, _args, _body), AddToEnv(env, name)) => {
-                    let new_env = env.clone();
+                    let mut new_env = env.clone();
                     // mutating the lambda's expression to add it.
                     // was a ref in reason.
                     // This is the second clone of expr.. feels extra bad.
-                    env_ref.insert(name, expr.clone());
+                    env_ref.insert(name.clone(), expr.clone());
+                    new_env.insert(name, expr.clone());
                     stack.push(Stop(new_env, expr));
                 }
                 (result, AddToEnv(env, name)) => {
@@ -329,6 +330,7 @@ fn main() {
     assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
     assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"));
     assert_eq!(Symbol("foo".to_string()), eval_once_off("(println (quote foo))"));
-    assert_eq!(Number(4), eval_once_off("(def a 4) a"));
     assert_eq!(Number(9), eval_once_off("((lambda (n) (* n n)) 3)"));
+    assert_eq!(Number(4), eval_once_off("(def a 4) a"));
+    assert_eq!(Number(9), eval_once_off("(def square (lambda (n) (* n n))) (square 3)"));
 }
