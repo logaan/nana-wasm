@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-use ferris_says::say;
 use regex::Regex;
 use std::env;
 use std::io::{stdout, BufWriter};
@@ -213,7 +212,6 @@ fn eval_frame(mut stack: Stack) -> Stack {
             // Cloning here to avoid move issues when inserting into lambda env
             match (expr.clone(), next) {
                 (True, PushBranch(env, then_expr, _else_expr)) => {
-                    println!("Pushing {:?}", Start(env.clone(), then_expr.clone()));
                     stack.push(Start(env, then_expr))
                 }
                 (False, PushBranch(env, _then_expr, else_expr)) => {
@@ -301,13 +299,6 @@ fn eval_once_off(code: &str) -> Expression {
 
 // TODO: Re-write main to be like Hello.re
 fn main() {
-    let stdout = stdout();
-    let message = String::from("Hello fellow Rustaceans!");
-    let width = message.chars().count();
-
-    let mut writer = BufWriter::new(stdout.lock());
-    say(message.as_bytes(), width, &mut writer).unwrap();
-
     assert_eq!(BuiltinFunction::Equals, BuiltinFunction::Equals);
     assert_eq!(vec!["(", "hello", ")"], tokenize(&"(hello)"));
 
