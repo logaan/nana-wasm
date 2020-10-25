@@ -217,14 +217,15 @@ fn eval_frame(mut stack: Stack) -> Stack {
                 (False, PushBranch(env, _then_expr, else_expr)) => {
                     stack.push(Start(env, else_expr))
                 }
-                (Lambda(mut env_ref, _args, _body), AddToEnv(env, name)) => {
+                (Lambda(mut env_ref, args, body), AddToEnv(env, name)) => {
                     let mut new_env = env.clone();
                     // mutating the lambda's expression to add it.
                     // was a ref in reason.
                     // This is the second clone of expr.. feels extra bad.
                     env_ref.insert(name.clone(), expr.clone());
-                    new_env.insert(name, expr.clone());
-                    stack.push(Stop(new_env, expr));
+                    let lambda_with_self_reference = Lambda(env_ref, args, body);
+                    new_env.insert(name, lambda_with_self_reference.clone());
+                    stack.push(Stop(new_env, lambda_with_self_reference));
                 }
                 (result, AddToEnv(env, name)) => {
                     let mut new_env = env.clone();
@@ -333,4 +334,13 @@ fn main() {
     assert_eq!(Number(9), eval_once_off("((lambda (n) (* n n)) 3)"));
     assert_eq!(Number(4), eval_once_off("(def a 4) a"));
     assert_eq!(Number(9), eval_once_off("(def square (lambda (n) (* n n))) (square 3)"));
+    assert_eq!(Symbol("done".to_string()), eval_once_off("
+(def repeat-once
+  (lambda (should-repeat?)
+    (if should-repeat?
+      (repeat-once false)
+      (quote done))))
+
+(repeat-once true)
+"));
 }
