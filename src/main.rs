@@ -211,9 +211,7 @@ fn eval_frame(mut stack: Stack) -> Stack {
 
             // Cloning here to avoid move issues when inserting into lambda env
             match (expr.clone(), next) {
-                (True, PushBranch(env, then_expr, _else_expr)) => {
-                    stack.push(Start(env, then_expr))
-                }
+                (True, PushBranch(env, then_expr, _else_expr)) => stack.push(Start(env, then_expr)),
                 (False, PushBranch(env, _then_expr, else_expr)) => {
                     stack.push(Start(env, else_expr))
                 }
@@ -330,11 +328,20 @@ fn main() {
     assert_eq!(Number(1), eval_once_off("(if true 1 2)"));
     assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
     assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"));
-    assert_eq!(Symbol("foo".to_string()), eval_once_off("(println (quote foo))"));
+    assert_eq!(
+        Symbol("foo".to_string()),
+        eval_once_off("(println (quote foo))")
+    );
     assert_eq!(Number(9), eval_once_off("((lambda (n) (* n n)) 3)"));
     assert_eq!(Number(4), eval_once_off("(def a 4) a"));
-    assert_eq!(Number(9), eval_once_off("(def square (lambda (n) (* n n))) (square 3)"));
-    assert_eq!(Symbol("done".to_string()), eval_once_off("
+    assert_eq!(
+        Number(9),
+        eval_once_off("(def square (lambda (n) (* n n))) (square 3)")
+    );
+    assert_eq!(
+        Symbol("done".to_string()),
+        eval_once_off(
+            "
 (def repeat-once
   (lambda (should-repeat?)
     (if should-repeat?
@@ -342,5 +349,7 @@ fn main() {
       (quote done))))
 
 (repeat-once true)
-"));
+"
+        )
+    );
 }
