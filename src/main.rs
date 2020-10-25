@@ -337,19 +337,8 @@ fn main() {
     assert_eq!(True, eval_once_off("true"));
     assert_eq!(False, eval_once_off("false"));
     assert_eq!(False, eval_once_off("true false"));
-
     assert_eq!(Number(1), eval_once_off("1"));
-
-    println!("  ---  (if true 1 2)  ---  ");
-    // If should be going to PushBranch not EvalFn
-    // Also why are only the first three tokens part of evalfn?
     assert_eq!(Number(1), eval_once_off("(if true 1 2)"));
-
-    println!("  ---  (+ 1 2)  ---  ");
-    // Could be that there was pattern matching for [Stop()] in the reason
-    // version and we're just running it for [Stop(), ...]
     assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
-
-    println!("  ---  (+ )  ---  ");
     assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"))
 }
