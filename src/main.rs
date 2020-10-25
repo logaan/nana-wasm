@@ -173,11 +173,9 @@ fn eval_frame(mut stack: Stack) -> Stack {
                         stack.push(Start(env, func));
                     }
                     Symbol(name) => match name.as_str() {
-                        "def" => match exprs.pop().expect("def must be followed by a name") {
+                        "def" => match exprs.remove(0) {
                             Symbol(name) => {
-                                let value_expr = exprs
-                                    .pop()
-                                    .expect("def must be followed by a name and an expression");
+                                let value_expr = exprs.remove(0);
                                 stack.push(AddToEnv(env.clone(), name));
                                 stack.push(Start(env, value_expr));
                             }
@@ -340,4 +338,5 @@ fn main() {
     assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
     assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"));
     assert_eq!(Symbol("foo".to_string()), eval_once_off("(println (quote foo))"));
+    assert_eq!(Number(4), eval_once_off("(def a 4)(println a)"));
 }
