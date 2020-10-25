@@ -164,7 +164,7 @@ fn eval_start(env: Environment, expr: Expression) -> Frame {
 fn eval_frame(mut stack: Stack) -> Stack {
     match stack.pop().expect("Nothing on the stack.") {
         Start(env, expr) => {
-            match expr {
+            match expr.clone() {
                 // This seems like a terrible way to get the first element from
                 // the list
                 List(mut exprs) => match exprs.remove(0) {
@@ -199,9 +199,11 @@ fn eval_frame(mut stack: Stack) -> Stack {
                             stack.push(EvalFn(env.clone(), vec![Continuation(stack.clone())]));
                             stack.push(Start(env, func));
                         }
-                        _ => panic!("List must start with a fn or special form"),
+                        // These three identical cases aren't great. Can it be
+                        // flattened somehow?
+                        _ => stack.push(eval_start(env, expr)),
                     },
-                    _ => panic!("List must start with a fn or special form"),
+                    _ => stack.push(eval_start(env, expr)),
                 },
                 _ => stack.push(eval_start(env, expr)),
             }
@@ -343,8 +345,11 @@ fn main() {
     // Also why are only the first three tokens part of evalfn?
     assert_eq!(Number(1), eval_once_off("(if true 1 2)"));
 
-    println!("  ---  (+ 1 1)  ---  ");
+    println!("  ---  (+ 1 2)  ---  ");
     // Could be that there was pattern matching for [Stop()] in the reason
     // version and we're just running it for [Stop(), ...]
     assert_eq!(Number(3), eval_once_off("(+ 1 2)"));
+
+    println!("  ---  (+ )  ---  ");
+    assert_eq!(Number(1), eval_once_off("(first (quote (1 2 3)))"))
 }
