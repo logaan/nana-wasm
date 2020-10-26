@@ -17,9 +17,13 @@ static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 #[wasm_bindgen]
 extern {
     fn alert(s: &str);
+    fn prompt(s: &str) -> String;
 }
 
 #[wasm_bindgen]
 pub fn greet() {
-    alert(format!("(+ 1 2) = {:?}", eval_once_off("(+ 1 2)")).as_str());
+    let input = prompt("Type a program to run");
+    alert(format!("{:?} = {:?}",
+                  input.as_str(),
+                  eval_once_off(input.as_str())).as_str());
 }
