@@ -292,7 +292,7 @@ fn eval_expressions(env: Environment, code: String) -> (Environment, Expression)
     eval_stepper(stack)
 }
 
-fn eval_once_off(code: &str) -> Expression {
+pub fn eval_once_off(code: &str) -> Expression {
     let (_, result) = eval_expressions(standard_library::environment(), code.to_string());
     result
 }

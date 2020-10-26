@@ -1,6 +1,12 @@
+#![allow(dead_code)]
+#![allow(unused_imports)]
+
 mod utils;
 
 use wasm_bindgen::prelude::*;
+
+mod main;
+use main::eval_once_off;
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -15,5 +21,5 @@ extern {
 
 #[wasm_bindgen]
 pub fn greet() {
-    alert("Hello, wasm-game-of-life!");
+    alert(format!("(+ 1 2) = {:?}", eval_once_off("(+ 1 2)")).as_str());
 }
